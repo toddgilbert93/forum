@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AgentConfig } from "@/lib/types";
 
 interface AgentHeaderProps {
@@ -9,15 +9,27 @@ interface AgentHeaderProps {
 
 export function AgentHeader({ agents }: AgentHeaderProps) {
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const toggle = (name: string) => {
     setExpandedAgent((prev) => (prev === name ? null : name));
   };
 
+  useEffect(() => {
+    if (!expandedAgent) return;
+    const handleClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setExpandedAgent(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [expandedAgent]);
+
   return (
     <div className="flex items-center justify-between px-4 py-3 border-b border-amber-700/30">
       <h1 className="text-sm font-normal text-zinc-800" style={{ fontFamily: 'var(--font-cinzel)' }}>The Forum</h1>
-      <div className="flex items-center gap-2">
+      <div ref={containerRef} className="flex items-center gap-2">
         {agents.map((agent) => (
           <div key={agent.name} className="relative">
             <button
