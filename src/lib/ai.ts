@@ -119,9 +119,8 @@ export async function streamAgentResponse(
 
   let fullContent = "";
 
-  // Reasoning models (Gemini 2.5 Flash, Grok) use thinking tokens that count against maxOutputTokens
-  const isReasoningModel = agent.provider === "google" || agent.provider === "xai";
-  const tokenLimit = isReasoningModel ? 2048 : 150;
+  // Gemini 2.5 Flash uses thinking tokens that count against maxOutputTokens
+  const tokenLimit = agent.provider === "google" ? 2048 : 150;
 
   const { textStream } = streamText({
     model: getModel(agent),
