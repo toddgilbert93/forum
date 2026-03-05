@@ -1,19 +1,48 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { streamText, ModelMessage } from "ai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createXai } from "@ai-sdk/xai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { ChatMessage, AgentConfig } from "./types";
 
-const anthropic = new Anthropic({
+// --- Provider instances ---
+
+const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-function buildAnthropicMessages(
+const xai = createXai({
+  apiKey: process.env.XAI_API_KEY!,
+});
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
+});
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
+
+function getModel(agent: AgentConfig) {
+  switch (agent.provider) {
+    case "anthropic":
+      return anthropic(agent.model);
+    case "xai":
+      return xai(agent.model);
+    case "google":
+      return google(agent.model);
+    case "openai":
+      return openai.chat(agent.model);
+  }
+}
+
+// --- Message building ---
+
+function buildMessages(
   agent: AgentConfig,
   history: ChatMessage[],
   currentTurnResponses: { agentName: string; content: string }[]
-): Anthropic.MessageParam[] {
-  // Build a flat list where:
-  // - Human messages → role: "user"
-  // - THIS agent's own past messages → role: "assistant" (its own output)
-  // - OTHER agents' messages → role: "user" with [AgentName] prefix (input to this agent)
+): ModelMessage[] {
   const raw: { role: "user" | "assistant"; content: string }[] = [];
 
   for (const msg of history) {
@@ -29,7 +58,6 @@ function buildAnthropicMessages(
     }
   }
 
-  // Current turn responses from other agents are also "user" input
   for (const resp of currentTurnResponses) {
     if (resp.agentName === agent.name) {
       raw.push({ role: "assistant", content: resp.content });
@@ -41,26 +69,32 @@ function buildAnthropicMessages(
     }
   }
 
-  // Merge consecutive same-role messages (Anthropic API requires alternation)
-  const merged: Anthropic.MessageParam[] = [];
+  // Merge consecutive same-role messages (some providers require alternation)
+  const merged: ModelMessage[] = [];
   for (const msg of raw) {
     if (merged.length > 0 && merged[merged.length - 1].role === msg.role) {
       merged[merged.length - 1] = {
         role: msg.role,
-        content: (merged[merged.length - 1].content as string) + "\n\n" + msg.content,
+        content:
+          (merged[merged.length - 1].content as string) + "\n\n" + msg.content,
       };
     } else {
       merged.push({ role: msg.role, content: msg.content });
     }
   }
 
-  // Ensure the last message is role: "user" (required to prompt a response)
+  // Ensure the last message is role: "user" to prompt a response
   if (merged.length > 0 && merged[merged.length - 1].role === "assistant") {
-    merged.push({ role: "user", content: "[The conversation continues. Please respond.]" });
+    merged.push({
+      role: "user",
+      content: "[The conversation continues. Please respond.]",
+    });
   }
 
   return merged;
 }
+
+// --- Streaming ---
 
 export async function streamAgentResponse(
   agent: AgentConfig,
@@ -72,9 +106,9 @@ export async function streamAgentResponse(
 ): Promise<string> {
   const systemPrompt = canPass
     ? agent.systemPrompt
-    : agent.systemPrompt + "\n- You MUST respond this turn. Do not say \"pass\".";
+    : agent.systemPrompt + '\n- You MUST respond this turn. Do not say "pass".';
 
-  const messages = buildAnthropicMessages(agent, history, currentTurnResponses);
+  const messages = buildMessages(agent, history, currentTurnResponses);
 
   const startEvent = JSON.stringify({
     type: "agent_start",
@@ -85,25 +119,24 @@ export async function streamAgentResponse(
 
   let fullContent = "";
 
-  const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 150,
+  // Reasoning models (Gemini 2.5 Flash, Grok) use thinking tokens that count against maxOutputTokens
+  const isReasoningModel = agent.provider === "google" || agent.provider === "xai";
+  const tokenLimit = isReasoningModel ? 2048 : 150;
+
+  const { textStream } = streamText({
+    model: getModel(agent),
     system: systemPrompt,
     messages,
+    maxOutputTokens: tokenLimit,
   });
 
-  for await (const event of stream) {
-    if (
-      event.type === "content_block_delta" &&
-      event.delta.type === "text_delta"
-    ) {
-      fullContent += event.delta.text;
-      const chunkEvent = JSON.stringify({
-        type: "agent_chunk",
-        content: event.delta.text,
-      });
-      await writer.write(encoder.encode(`data: ${chunkEvent}\n\n`));
-    }
+  for await (const chunk of textStream) {
+    fullContent += chunk;
+    const chunkEvent = JSON.stringify({
+      type: "agent_chunk",
+      content: chunk,
+    });
+    await writer.write(encoder.encode(`data: ${chunkEvent}\n\n`));
   }
 
   const trimmed = fullContent.trim().toLowerCase();

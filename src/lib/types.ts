@@ -9,6 +9,8 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export type AIProvider = "anthropic" | "xai" | "google" | "openai";
+
 export interface AgentConfig {
   name: string;
   emoji: string;
@@ -17,6 +19,8 @@ export interface AgentConfig {
   accentBorder: string;
   description: string;
   systemPrompt: string;
+  provider: AIProvider;
+  model: string;
 }
 
 export type SSEEvent =

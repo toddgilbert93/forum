@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { agents } from "@/lib/agents";
-import { streamAgentResponse } from "@/lib/anthropic";
+import { streamAgentResponse } from "@/lib/ai";
 import { ChatMessage, ChatRequest } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -44,19 +44,24 @@ export async function POST(request: NextRequest) {
 
   const shuffledAgents = shuffleArray(activeAgents);
 
+  // Limit to 3 responders per turn (unless @mentioned)
+  const respondingAgents = mentionedNames.length > 0
+    ? shuffledAgents
+    : shuffledAgents.slice(0, 3);
+
   (async () => {
     try {
       const turnStart = JSON.stringify({
         type: "turn_start",
-        agentOrder: shuffledAgents.map((a) => a.name),
+        agentOrder: respondingAgents.map((a) => a.name),
       });
       await writer.write(encoder.encode(`data: ${turnStart}\n\n`));
 
       const currentTurnResponses: { agentName: string; content: string }[] = [];
 
-      for (let i = 0; i < shuffledAgents.length; i++) {
-        const agent = shuffledAgents[i];
-        const isLast = i === shuffledAgents.length - 1;
+      for (let i = 0; i < respondingAgents.length; i++) {
+        const agent = respondingAgents[i];
+        const isLast = i === respondingAgents.length - 1;
         const anyoneResponded = currentTurnResponses.length > 0;
         const canPass = mentionedNames.length > 0
           ? false  // Mentioned agents must respond
