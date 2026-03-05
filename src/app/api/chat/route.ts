@@ -84,6 +84,30 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Follow-up round: 50% chance early responders react to later responses
+      if (currentTurnResponses.length >= 2 && Math.random() < 0.5) {
+        const followUpCount = Math.random() < 0.7 ? 1 : 2;
+        const followUpAgents = respondingAgents.slice(0, followUpCount);
+
+        for (const agent of followUpAgents) {
+          const response = await streamAgentResponse(
+            agent,
+            updatedHistory,
+            currentTurnResponses,
+            writer,
+            encoder,
+            true
+          );
+
+          if (response) {
+            currentTurnResponses.push({
+              agentName: agent.name,
+              content: response,
+            });
+          }
+        }
+      }
+
       const turnDone = JSON.stringify({ type: "turn_done" });
       await writer.write(encoder.encode(`data: ${turnDone}\n\n`));
     } catch (error) {
