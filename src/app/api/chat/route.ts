@@ -5,6 +5,7 @@ import { ChatMessage, ChatRequest } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 function shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array];
