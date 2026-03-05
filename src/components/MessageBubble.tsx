@@ -11,8 +11,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   if (isHuman) {
     return (
       <div className="flex justify-end">
-        <div className="bg-zinc-700/50 rounded-2xl rounded-br-sm px-4 py-2.5 max-w-[80%]">
-          <p className="text-zinc-100 text-sm leading-relaxed whitespace-pre-wrap">
+        <div className="bg-amber-800/10 border border-amber-700/20 rounded-lg rounded-br-sm px-4 py-2.5 max-w-[80%]">
+          <p className="text-zinc-800 text-sm font-medium leading-relaxed whitespace-pre-wrap">
             {message.content}
           </p>
         </div>
@@ -21,19 +21,19 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   }
 
   const agent = agents.find((a) => a.name === message.agentName);
-  const bgColor = agent?.accentBg || "bg-zinc-800/50";
-  const nameColor = agent?.color || "text-zinc-400";
+  const bgColor = agent?.accentBg || "bg-amber-100/50";
+  const nameColor = agent?.color || "text-zinc-800";
 
   return (
     <div className="flex justify-start">
-      <div className={`${bgColor} rounded-xl px-4 py-2.5 max-w-[80%]`}>
+      <div className={`${bgColor} rounded-lg px-4 py-2.5 max-w-[80%]`}>
         <div className="flex items-center gap-1.5 mb-1">
           <span className="text-sm">{message.agentEmoji}</span>
           <span className={`text-xs font-semibold ${nameColor}`}>
             {message.agentName}
           </span>
         </div>
-        <p className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap">
+        <p className="text-zinc-800 text-sm font-medium leading-relaxed whitespace-pre-wrap">
           {message.content}
         </p>
       </div>

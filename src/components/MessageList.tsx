@@ -18,7 +18,7 @@ export function MessageList({ messages }: MessageListProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-thin">
       {messages.length === 0 && (
-        <div className="flex items-center justify-center h-full text-zinc-600 text-sm">
+        <div className="flex items-center justify-center h-full text-zinc-800/40 text-sm font-medium italic">
           Start a conversation with the agents...
         </div>
       )}

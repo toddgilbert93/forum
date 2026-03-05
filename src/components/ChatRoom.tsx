@@ -140,7 +140,7 @@ export function ChatRoom() {
 
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto w-full p-4">
-      <div className="flex flex-col flex-1 min-h-0 rounded-2xl border border-zinc-800 bg-zinc-950/95 overflow-hidden">
+      <div className="flex flex-col flex-1 min-h-0 rounded-lg border border-amber-700/30 shadow-lg overflow-hidden marble-bg">
         <AgentHeader agents={agents} />
         <MessageList messages={messages} />
         {isProcessing && currentAgent && (

@@ -3,17 +3,35 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist);
+  --font-serif: var(--font-cormorant);
 }
 
 :root {
-  --background: #0a0a0f;
-  --foreground: #e4e4e7;
+  --background: #f5f0e8;
+  --foreground: #27272a;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+.marble-bg {
+  position: relative;
+  background-color: #f0ebe3;
+}
+
+.marble-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('/texture.png') center / cover no-repeat;
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.marble-bg > * {
+  position: relative;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -25,6 +43,6 @@ body {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #c9a84c;
   border-radius: 3px;
 }
